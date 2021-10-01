@@ -12,8 +12,8 @@
 	<param name="num_classes" value="80"/>  
 	
 	<!-- Topic name parameters -->
-	<param name="object_detection_topic" value="/pcdet_ros/bounding_boxes"/>
-	<param name="tracked_objects_topic" value="object_detection/bboxes_3d_tracked"/>
+	<param name="object_detection_topic" value="/perception/lidar/bboxes3d"/>
+	<param name="tracked_objects_topic" value="/perception/lidar/tracked_bboxes3d"/>
 	
 	<!-- Logging parameters    -->
 	<param name="log_info" value="False"/> <!-- Log the inference time --> 
@@ -22,7 +22,6 @@
 	<node name="tracking_wrapper" pkg="sort_3d" type="tracking_3d_wrapper.py" output="screen"/>
 	
 	<!-- Plotting Node -->
-	<node pkg="tf" type="static_transform_publisher" name="velodyne_to_map" args="0 0 0 0 0 0  /base_link /map 100" />
 	<include file="$(find sort_3d)/launch/plotter.launch"/>
 	
 	

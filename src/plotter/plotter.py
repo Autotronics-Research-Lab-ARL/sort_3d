@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import rospy
 
 import numpy as np
@@ -6,7 +8,7 @@ from typing import Union, List
 from pyquaternion import Quaternion
 
 from visualization_msgs.msg import MarkerArray, Marker
-from pcdet_ros_msgs.msg import BoundingBox3D,BoundingBoxes3D
+from arl_msgs.msg import BBox3D, BBox3DArray
 
 def numpy_to_MarkerMsg(box_arr: Union[np.array, List[float]], name_space:str, idx:int, frame_id:str='') -> Marker:
     '''
@@ -92,13 +94,13 @@ def del_msg(frame_id:str='') -> Marker:
     
     return msg
     
-def visualize_bboxs(data:BoundingBoxes3D):
+def visualize_bboxs(data:BBox3DArray):
     '''
     Plots the bounding boxes in the given data by publishing the corresponding MarkerArray that can be visualized in rviz
     
     Parameters
     ----------
-    data: pcdet_ros_msgs.msg.BoundingBoxes3D
+    data: pcdet_ros_msgs.msg.BBox3DArray
         Contains all bounding boxes (must be tracked with unique ids)
     '''
     global counter
@@ -113,10 +115,10 @@ def visualize_bboxs(data:BoundingBoxes3D):
     counter += 1
     
     # Add a Marker for each box
-    for box in data.bounding_boxes:
-        box_id = box.label
-        box_to_add = np.array([box.x, box.y, box.z, box.dx, box.dy, box.dz, box.heading])
-        unique_id = box.unique_id
+    for box in data.boxes:
+        box_id = box.box_id
+        box_to_add = np.array([box.center.x, box.center.y, box.center.z, box.size.x, box.size.y, box.size.z, box.heading])
+        unique_id = box.box_id
         markers.append(numpy_to_MarkerMsg(box_to_add, marker_ns, unique_id, frame_id))
         
     # Publish all markers
@@ -136,7 +138,7 @@ if __name__ == "__main__":
     override_frame_id = rospy.get_param("override_frame_id",None)
     
     # Publishers and Subscribers
-    rviz_boxes_pub = rospy.Publisher(marker_tracking_topic, MarkerArray, queue_size=1)
-    rospy.Subscriber(plotter_bboxes_topic, BoundingBoxes3D, callback=visualize_bboxs)
+    rviz_boxes_pub = rospy.Publisher(marker_tracking_topic, MarkerArray, queue_size=100)
+    rospy.Subscriber(plotter_bboxes_topic, BBox3DArray, callback=visualize_bboxs)
     
     rospy.spin()

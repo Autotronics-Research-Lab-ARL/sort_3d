@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>
 	<!-- Topic name parameters -->
-	<param name="plotter_bboxes_topic" value="object_detection/bboxes_3d_tracked"/>
-	<param name="marker_tracking_topic" value="markers/3d_tracking"/>
+	<param name="plotter_bboxes_topic" value="/perception/lidar/tracked_bboxes3d"/>
+	<param name="marker_tracking_topic" value="rviz/markers/tracked_cubes"/>
 	
 	<!-- Force frame_id of markers to be this value, if commented this parameters, the frame_id of plotter_bboxes_topic is used -->
-	<param name="override_frame_id" value="base_link"/>
+	<param name="override_frame_id" value="velodyne"/>
 	
 	<node name="tracking_plotter" pkg="sort_3d" type="plotter.py" output="screen"/>
 </launch>

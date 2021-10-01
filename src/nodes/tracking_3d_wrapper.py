@@ -1,36 +1,39 @@
+#!/usr/bin/env python3
+
+
 import time
 import rospy
 
 import numpy as np
 
 from visualization_msgs.msg import MarkerArray, Marker
-from pcdet_ros_msgs.msg import BoundingBox3D,BoundingBoxes3D
+from arl_msgs.msg import BBox3D, BBox3DArray
 
 import SORT3D as SORT_Tracker
 
     
-def track_objects(data:BoundingBoxes3D):
+def track_objects(data:BBox3D):
     '''
     Tracks objects either using SORT by adding a unique id to each object detected
     
     Parameters
     ----------
-    data: pcdet_ros_msgs.msg.BoundingBoxes3D
+    data: arl_msgs.msg.BBox3DArray
         The bounding boxes predicted from PV-RCNN (doesn't need the unique_id parameter to be set for each bounding box)
     '''
     global trackers
     
     tic = time.time()
     
-    filtered_boxes = BoundingBoxes3D()
+    filtered_boxes = BBox3DArray()
     filtered_boxes.header = data.header
     
     # Parse given BBoxes3D
     detections = [[] for i in range(num_classes)]
-    for box in data.bounding_boxes:
-        box_id = box.label
+    for box in data.boxes:
+        box_id = box.box_id
         if box_id > -1 and box_id < num_classes:
-            box_to_add = [box.x, box.y, box.z, box.heading, box.dx, box.dy, box.dz]
+            box_to_add = [box.center.x, box.center.y, box.center.z, box.heading, box.size.x, box.size.y, box.size.z]
             detections[box_id].append(box_to_add)
         else:
             rospy.logwarn("Class {} is unidentified. It will be ignored by the tracker.".format(box.class_id))
@@ -46,10 +49,10 @@ def track_objects(data:BoundingBoxes3D):
         # Add filtered cones to message that will be published, along with a unique id
         if len(to_track) > 0:
             for f in to_track:
-                bbx = BoundingBox3D()
-                bbx.x, bbx.y, bbx.z, bbx.heading, bbx.dx, bbx.dy, bbx.dz = np.array(f[:7], dtype=float)
-                bbx.unique_id = int(f[-1])
-                filtered_boxes.bounding_boxes.append(bbx)
+                bbx = BBox3D()
+                bbx.center.x, bbx.center.y, bbx.center.z, bbx.heading, bbx.size.x, bbx.size.y, bbx.size.z = np.array(f[:7], dtype=float)
+                bbx.box_id = int(f[-1])
+                filtered_boxes.boxes.append(bbx)
     
     toc = time.time()
 
@@ -89,7 +92,7 @@ if __name__ == "__main__":
             rospy.logfatal("Unknown tracking method {}. Currently, can only use \"SORT\"".format(tracking_method))
 
     # Publishers and Subscribers
-    tracked_boxes = rospy.Publisher(tracked_objects_topic, BoundingBoxes3D, queue_size=1)
-    rospy.Subscriber(object_detection_topic, BoundingBoxes3D, callback=track_objects)
+    tracked_boxes = rospy.Publisher(tracked_objects_topic, BBox3DArray, queue_size=10)
+    rospy.Subscriber(object_detection_topic, BBox3DArray, callback=track_objects)
     
     rospy.spin()
