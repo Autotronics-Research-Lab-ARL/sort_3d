@@ -54,7 +54,7 @@ class KalmanBoxTracker:
         self.kf.H[:7, :7] = np.eye(7)
 
         # Initialize uncertainties
-        self.kf.R[3:6, 3:6] *= 10.
+        self.kf.R[3:6, 3:6] *= 0.01
         self.kf.P[7:, 7:] *= 1000. # give high uncertainty to the unobservable initial velocities
         self.kf.P *= 10.
         self.kf.Q[-1, -1] *= 10
