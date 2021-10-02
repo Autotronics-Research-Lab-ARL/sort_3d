@@ -11,7 +11,7 @@ class KalmanBoxTracker:
     Assumptions:
     - Shapes of bounding boxes are taken as constants (don't change over time), but the estimate is improved with new observations
     - Prediction model is a constant velocity model
-    
+
     Attributes
     ----------
     kf: filterpy.kalman.KalmanFilter
@@ -19,7 +19,7 @@ class KalmanBoxTracker:
     id: int
         unique id given to this tracker
     history: list
-    
+
     hits: int
         The number of times bounding boxes were associated with this tracker
     age: int
@@ -57,8 +57,8 @@ class KalmanBoxTracker:
         self.kf.R[3:6, 3:6] *= 10.
         self.kf.P[7:, 7:] *= 1000. # give high uncertainty to the unobservable initial velocities
         self.kf.P *= 10.
-        self.kf.Q[-1, -1] *= 0.01
-        self.kf.Q[7:, 7:] *= 0.01
+        self.kf.Q[-1, -1] *= 10
+        self.kf.Q[7:, 7:] *= 10
 
         # Initial state of bounding box
         self.kf.x[:7] = bbox.reshape(7, 1)
@@ -89,13 +89,13 @@ class KalmanBoxTracker:
         current_heading = self.kf.x[3]
         if bbox[3]-current_heading > 2*np.pi:
             bbox[3] -= 2*np.pi*np.floor((bbox[3]-current_heading)/(2*np.pi))
-        elif bbox[3]-current_heading < 2*np.pi:
+        elif bbox[3]-current_heading < -2*np.pi:
             bbox[3] -= 2*np.pi*np.ceil((bbox[3]-current_heading)/(2*np.pi))
 
         # Noise Removal, TODO: improve this
         if np.abs(current_heading-bbox[3]) > np.pi/2:
             bbox[3] = current_heading
-            
+
         self.kf.update(bbox)
 
     def predict(self) -> Union[np.array, list]:
@@ -108,11 +108,11 @@ class KalmanBoxTracker:
             The last estimated state of this tracker's bounding box
         '''
         self.kf.predict()
-        
+
         self.age += 1
         self.time_since_update += 1
         self.history.append(self.kf.x)
-        
+
         return self.kf.x
 
     def get_state(self) -> Union[np.array, list]:
@@ -125,29 +125,29 @@ class KalmanBoxTracker:
             The last estimated state of this tracker's bounding box
         '''
         return self.kf.x
-    
+
     def get_future_trajectories(self, num_steps:int=10) -> np.array:
         '''
         Moves the current bounding box using the estimated velocity a number of steps in the future and returns that predicted trajectory
         Note: it predicts num_steps into the future and doesn't include the bounding box's current state
-        
+
         Parameters
         ----------
         num_steps: int
             The number of steps to predict into the future
-        
+
         Returns
         -------
         np.array, shape = (num_steps, 7)
             Each row represents the bounding box state at the corresponding timestep
         '''
         predicted_states = []
-        
+
         cur_state = self.get_state()
         forward_matrix = self.kf.F
-        
+
         for i in range(num_steps):
             cur_state = np.dot(forward_matrix,cur_state)
             predicted_states.append(cur_state[:7])
-        
+
         return np.array(predicted_states)
